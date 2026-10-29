@@ -1,0 +1,516 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>body{margin:0}[hidden]{display:none!important}img{max-width:100%}</style>
+<title>顺路 校园跑腿</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&family=ZCOOL+QingKe+HuangYou&family=DM+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: sticky app bar + tab views in one centered column (2-col task grid on wide screens); modal sheet for task detail */
+:root{
+  --bg:#f2f5f0; --surface:#ffffff; --surface-2:#e9efe8; --ink:#16211b; --muted:#5b6a61; --line:#dbe3db;
+  --brand:#1f6b48; --brand-soft:#dcefe3; --brand-ink:#ffffff;
+  --gold:#b87d00; --gold-soft:#fff2cf; --danger:#b8402b; --danger-soft:#fbe3dd; --info:#2b5c99; --info-soft:#e0ebf8;
+  --shadow:0 1px 2px rgba(20,40,30,.06),0 6px 20px rgba(20,40,30,.06);
+  --f-display:"ZCOOL QingKe HuangYou","Noto Sans SC","PingFang SC",sans-serif;
+  --f-body:"Noto Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+  --f-mono:"DM Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0e1411; --surface:#16201b; --surface-2:#1d2a23; --ink:#e5ece7; --muted:#93a399; --line:#28362e;
+  --brand:#52bb89; --brand-soft:#1c3529; --brand-ink:#07140d;
+  --gold:#f0c04a; --gold-soft:#2f2710; --danger:#ef7d66; --danger-soft:#3a1f19; --info:#7fa9e2; --info-soft:#1a2738;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 6px 20px rgba(0,0,0,.25); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0e1411; --surface:#16201b; --surface-2:#1d2a23; --ink:#e5ece7; --muted:#93a399; --line:#28362e;
+  --brand:#52bb89; --brand-soft:#1c3529; --brand-ink:#07140d;
+  --gold:#f0c04a; --gold-soft:#2f2710; --danger:#ef7d66; --danger-soft:#3a1f19; --info:#7fa9e2; --info-soft:#1a2738;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 6px 20px rgba(0,0,0,.25); color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.6}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.wrap{max-width:1040px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+
+/* app bar */
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--surface);border-bottom:1px solid var(--line)}
+.bar .wrap{display:flex;align-items:center;gap:16px;padding-block:10px;flex-wrap:wrap}
+.logo{font-family:var(--f-display);font-size:28px;line-height:1;color:var(--brand);letter-spacing:.02em;display:flex;align-items:baseline;gap:8px}
+.logo small{font-family:var(--f-body);font-size:12px;color:var(--muted);letter-spacing:.08em}
+.tabs{display:flex;gap:4px;margin-left:auto;flex-wrap:wrap}
+.tab{border:0;background:none;padding:6px 12px;border-radius:999px;color:var(--muted);font-weight:500}
+.tab[aria-current="true"]{background:var(--brand-soft);color:var(--brand)}
+.who{display:flex;align-items:center;gap:8px;font-size:13px}
+.who select{background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:4px 8px}
+
+main{padding-block:20px 120px}
+h1,h2,h3{text-wrap:balance;margin:0;line-height:1.3}
+h2{font-size:20px}
+.eyebrow{font-size:12px;letter-spacing:.1em;color:var(--muted);text-transform:uppercase}
+
+/* hall hero */
+.route{display:grid;grid-template-columns:1fr auto;gap:16px;align-items:center;background:var(--brand);color:var(--brand-ink);border-radius:16px;padding:18px 20px}
+.route h1{font-family:var(--f-display);font-weight:400;font-size:30px;letter-spacing:.02em}
+.route p{margin:4px 0 0;opacity:.88;font-size:14px}
+.route .pick{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px}
+.route select{background:rgba(255,255,255,.16);color:inherit;border:1px solid rgba(255,255,255,.35);border-radius:8px;padding:5px 8px}
+.route select option{color:#16211b;background:#fff}
+.route .stat{text-align:right}
+.route .stat b{display:block;font-family:var(--f-mono);font-size:34px;line-height:1}
+.route .stat span{font-size:12px;opacity:.85}
+
+.filters{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:18px 0 12px}
+.chip{border:1px solid var(--line);background:var(--surface);padding:5px 12px;border-radius:999px;font-size:13px;color:var(--muted)}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.filters .sort{margin-left:auto;display:flex;gap:6px;align-items:center;font-size:13px;color:var(--muted)}
+.filters select{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:4px 8px}
+
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;gap:10px;text-align:left;width:100%;min-width:0}
+.card:hover{border-color:var(--brand)}
+.card .top{display:flex;align-items:center;gap:8px}
+.type{font-size:12px;font-weight:500;padding:2px 8px;border-radius:6px;background:var(--brand-soft);color:var(--brand)}
+.type.buy{background:var(--info-soft);color:var(--info)}
+.type.seat{background:var(--gold-soft);color:var(--gold)}
+.type.other{background:var(--surface-2);color:var(--muted)}
+.along{font-size:12px;color:var(--brand);font-weight:500}
+.reward{margin-left:auto;font-family:var(--f-mono);font-weight:500;color:var(--gold);font-size:18px}
+.reward small{font-size:12px}
+.card h3{font-size:16px;font-weight:700}
+.path{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted);flex-wrap:wrap}
+.path i{font-style:normal;color:var(--line)}
+.meta{display:flex;gap:10px;align-items:center;font-size:12px;color:var(--muted);flex-wrap:wrap}
+.meta .due.hot{color:var(--danger);font-weight:500}
+.avatar{width:22px;height:22px;border-radius:50%;display:inline-grid;place-items:center;font-size:11px;font-weight:700;background:var(--surface-2);color:var(--ink)}
+.cred{font-family:var(--f-mono);font-size:12px;padding:0 6px;border-radius:4px;background:var(--brand-soft);color:var(--brand)}
+.status{font-size:12px;padding:2px 8px;border-radius:999px;font-weight:500}
+.s-open{background:var(--brand-soft);color:var(--brand)}
+.s-taken{background:var(--info-soft);color:var(--info)}
+.s-delivered{background:var(--gold-soft);color:var(--gold)}
+.s-done{background:var(--surface-2);color:var(--muted)}
+.s-cancelled{background:var(--danger-soft);color:var(--danger)}
+.empty{padding:40px 16px;text-align:center;color:var(--muted);border:1px dashed var(--line);border-radius:14px}
+
+/* forms */
+.form{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:20px;display:grid;gap:16px;max-width:680px}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+label.f{display:grid;gap:6px;font-size:13px;color:var(--muted);min-width:0}
+.f input,.f select,.f textarea{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:9px 12px;color:var(--ink);width:100%}
+.f textarea{min-height:72px;resize:vertical}
+.hint{font-size:12px;color:var(--muted)}
+.types{display:flex;gap:8px;flex-wrap:wrap}
+.types label{border:1px solid var(--line);border-radius:10px;padding:8px 14px;cursor:pointer;display:flex;gap:6px;align-items:center;background:var(--bg)}
+.types input{accent-color:var(--brand)}
+.types label:has(input:checked){border-color:var(--brand);background:var(--brand-soft);color:var(--brand)}
+.btn{border:0;border-radius:10px;padding:10px 18px;font-weight:700;background:var(--brand);color:var(--brand-ink)}
+.btn.ghost{background:var(--surface-2);color:var(--ink)}
+.btn.warn{background:var(--danger-soft);color:var(--danger)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.escrow{display:flex;gap:10px;align-items:center;background:var(--gold-soft);color:var(--ink);border-radius:10px;padding:10px 14px;font-size:13px}
+.escrow b{color:var(--gold)}
+
+/* orders */
+.seg{display:inline-flex;background:var(--surface-2);border-radius:10px;padding:3px;margin:12px 0 14px}
+.seg button{border:0;background:none;padding:6px 14px;border-radius:8px;color:var(--muted);font-weight:500}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:var(--shadow)}
+
+/* me */
+.me{display:grid;grid-template-columns:minmax(0,320px) minmax(0,1fr);gap:16px;align-items:start}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:18px}
+.gauge{display:grid;place-items:center;gap:4px;padding-block:8px}
+.gauge svg{width:160px;height:96px}
+.gauge .n{font-family:var(--f-mono);font-size:40px;font-weight:500;line-height:1;margin-top:-56px}
+.lvl{font-size:13px;font-weight:700;color:var(--brand)}
+.kv{display:grid;grid-template-columns:1fr auto;gap:6px 12px;font-size:14px;margin-top:12px}
+.kv dt{color:var(--muted)} .kv dd{margin:0;font-family:var(--f-mono);text-align:right}
+.badges{display:flex;gap:6px;flex-wrap:wrap;margin-top:12px}
+.badge{font-size:12px;border:1px solid var(--line);border-radius:6px;padding:2px 8px;color:var(--muted)}
+.badge.on{border-color:var(--brand);color:var(--brand)}
+.log{list-style:none;padding:0;margin:8px 0 0;display:grid}
+.log li{display:grid;grid-template-columns:auto 1fr auto;gap:12px;padding:10px 0;border-bottom:1px solid var(--line);font-size:14px;align-items:center}
+.log li:last-child{border-bottom:0}
+.log .d{font-family:var(--f-mono);font-weight:500}
+.up{color:var(--brand)} .dn{color:var(--danger)}
+.log time{font-size:12px;color:var(--muted);font-family:var(--f-mono)}
+
+/* design doc */
+.doc{max-width:760px;display:grid;gap:28px}
+.doc p{margin:6px 0 0;color:var(--muted)}
+.tbl{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+.tbl table{border-collapse:collapse;width:100%;min-width:520px;font-size:14px}
+.tbl th,.tbl td{padding:10px 14px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+.tbl tr:last-child td{border-bottom:0}
+.tbl th{font-size:12px;color:var(--muted);font-weight:500;letter-spacing:.06em;background:var(--surface-2)}
+.flow{display:flex;gap:0;flex-wrap:wrap;align-items:stretch;margin-top:12px}
+.flow div{flex:1 1 120px;background:var(--surface);border:1px solid var(--line);padding:10px 12px;font-size:13px;min-width:0}
+.flow div:first-child{border-radius:12px 0 0 12px}
+.flow div:last-child{border-radius:0 12px 12px 0}
+.flow b{display:block;font-size:14px;color:var(--ink)}
+.flow span{color:var(--muted)}
+.flow .k{font-family:var(--f-mono);font-size:11px;color:var(--brand)}
+.pains{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-top:12px}
+.pains div{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px}
+.pains b{display:block}
+.pains span{font-size:13px;color:var(--muted)}
+
+/* modal */
+.scrim{position:fixed;inset:0;background:rgba(10,20,15,.45);z-index:40;display:grid;place-items:end center}
+@media (min-width:700px){.scrim{place-items:center}}
+.sheet{background:var(--surface);width:min(560px,100%);max-height:88vh;overflow:auto;border-radius:18px 18px 0 0;padding:20px max(20px,env(safe-area-inset-right,0px)) calc(20px + env(safe-area-inset-bottom,0px)) max(20px,env(safe-area-inset-left,0px));display:grid;gap:14px}
+@media (min-width:700px){.sheet{border-radius:18px}}
+.sheet header{display:flex;gap:10px;align-items:center}
+.sheet .x{margin-left:auto;border:0;background:var(--surface-2);border-radius:8px;width:32px;height:32px}
+.steps{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;font-size:11px;color:var(--muted);text-align:center}
+.steps div{padding-top:8px;border-top:3px solid var(--line)}
+.steps div.on{border-color:var(--brand);color:var(--ink);font-weight:500}
+.secret{border:1px dashed var(--line);border-radius:10px;padding:10px 14px;font-size:14px;display:flex;gap:10px;align-items:center}
+.secret .code{font-family:var(--f-mono);font-size:18px;letter-spacing:.12em}
+.secret.locked{color:var(--muted)}
+.stars{display:flex;gap:4px}
+.stars button{border:0;background:none;font-size:26px;line-height:1;color:var(--line);padding:2px}
+.stars button.on{color:var(--gold)}
+.actions{display:flex;gap:10px;flex-wrap:wrap}
+.actions .btn{flex:1 1 140px}
+.note{font-size:12px;color:var(--muted)}
+
+.toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 18px;border-radius:999px;font-size:14px;z-index:60;max-width:calc(100% - 32px)}
+
+@media (max-width:720px){
+  .tabs{order:3;width:100%;margin-left:0;justify-content:space-between}
+  .who{margin-left:auto}
+  .me{grid-template-columns:minmax(0,1fr)}
+  .row{grid-template-columns:1fr}
+  .route{grid-template-columns:1fr}
+  .route .stat{text-align:left}
+  .filters .sort{margin-left:0}
+  .flow div{flex-basis:45%;border-radius:0!important}
+}
+@media (prefers-reduced-motion:no-preference){.card,.chip,.tab{transition:border-color .15s,background .15s}}
+</style>
+</head>
+<body>
+
+<header class="bar">
+  <div class="wrap">
+    <div class="logo">顺路<small>校园跑腿互助</small></div>
+    <nav class="tabs" aria-label="主导航">
+      <button class="tab" data-view="hall">任务大厅</button>
+      <button class="tab" data-view="post">发布任务</button>
+      <button class="tab" data-view="orders">我的订单</button>
+      <button class="tab" data-view="me">信用档案</button>
+      <button class="tab" data-view="design">产品设计</button>
+    </nav>
+    <label class="who" for="who">当前身份
+      <select id="who"></select>
+    </label>
+  </div>
+</header>
+
+<main class="wrap" id="app"></main>
+<div id="modal"></div>
+<div id="toast" class="toast" hidden></div>
+
+<script>
+const PLACES=["南区宿舍","北区宿舍","菜鸟驿站(东门)","京东快递点(西门)","一食堂","二食堂","图书馆","教学楼A","教学楼C","体育馆","校内超市"];
+const TYPES={express:{n:"代取快递",c:""},buy:{n:"代买物品",c:"buy"},seat:{n:"代占座",c:"seat"},other:{n:"其他帮忙",c:"other"}};
+const STATUS={open:"待接单",taken:"跑腿中",delivered:"待确认",done:"已完成",cancelled:"已取消"};
+const ROUTES=[["南区宿舍","图书馆"],["北区宿舍","教学楼A"],["南区宿舍","教学楼C"],["北区宿舍","体育馆"]];
+const MIN=60000;
+
+function seed(){
+  const now=Date.now();
+  return {
+    me:"u1", route:0, nextId:2611,
+    users:{
+      u1:{name:"林晓",dept:"计算机学院 · 大二",dorm:"南区 6 栋",credit:92,wallet:48.5,done:37,posted:12,rate:4.9,verified:true,
+          log:[{d:+2,t:"完成订单 #2597 代取快递",at:now-3*3600e3},{d:+1,t:"收到五星好评",at:now-3*3600e3},{d:-3,t:"接单后取消 #2541",at:now-6*86400e3}]},
+      u2:{name:"陈一舟",dept:"经管学院 · 大三",dorm:"北区 2 栋",credit:78,wallet:120,done:9,posted:21,rate:4.6,verified:true,
+          log:[{d:+2,t:"完成订单 #2588 代买物品",at:now-26*3600e3},{d:-5,t:"超时送达 #2560",at:now-4*86400e3}]},
+      u3:{name:"周若溪",dept:"外国语学院 · 大一",dorm:"南区 3 栋",credit:85,wallet:30,done:14,posted:6,rate:4.8,verified:true,log:[]},
+      u4:{name:"王拓",dept:"机械学院 · 研一",dorm:"北区 9 栋",credit:66,wallet:75,done:3,posted:15,rate:4.3,verified:false,log:[]}
+    },
+    tasks:[
+      {id:2610,type:"express",title:"菜鸟驿站 2 个中件，一个是书",from:"菜鸟驿站(东门)",to:"南区宿舍",detail:"南区 3 栋楼下就行，书那箱有点沉",reward:4,due:now+55*MIN,secret:"取件码 8-2-3071 / 8-1-1146",pub:"u3",runner:null,status:"open",at:now-8*MIN},
+      {id:2609,type:"seat",title:"图书馆三楼靠窗座位 1 个",from:"图书馆",to:"图书馆",detail:"明早 7:30 开馆帮占，3F 东区，占到发座位号即可，我 8:10 到",reward:5,due:now+14*60*MIN,secret:"",pub:"u2",runner:null,status:"open",at:now-20*MIN},
+      {id:2608,type:"buy",title:"二食堂麻辣香锅一份，微辣",from:"二食堂",to:"教学楼A",detail:"A-305 上课，下课前送到门口，餐费到了转你",reward:3,due:now+35*MIN,secret:"",pub:"u4",runner:null,status:"open",at:now-5*MIN},
+      {id:2607,type:"express",title:"京东大件：一箱牛奶",from:"京东快递点(西门)",to:"北区宿舍",detail:"北区 9 栋 4 楼，没电梯，所以多给点",reward:8,due:now+120*MIN,secret:"取件码 JD 5527",pub:"u4",runner:null,status:"open",at:now-40*MIN},
+      {id:2606,type:"buy",title:"校内超市带 A4 打印纸一包",from:"校内超市",to:"图书馆",detail:"图书馆 2F 自习区，到了微信喊我",reward:3,due:now+80*MIN,secret:"",pub:"u3",runner:null,status:"open",at:now-12*MIN},
+      {id:2605,type:"other",title:"体育馆帮还羽毛球拍",from:"南区宿舍",to:"体育馆",detail:"拍子在南区 6 栋宿管处，还到体育馆器材室，登记名字写周若溪",reward:4,due:now+180*MIN,secret:"",pub:"u3",runner:null,status:"open",at:now-60*MIN},
+      {id:2604,type:"express",title:"驿站小件一个（化妆品）",from:"菜鸟驿站(东门)",to:"北区宿舍",detail:"",reward:3,due:now+40*MIN,secret:"取件码 3-4-2208",pub:"u2",runner:"u1",status:"taken",at:now-30*MIN},
+      {id:2603,type:"buy",title:"一食堂带两个肉包一杯豆浆",from:"一食堂",to:"南区宿舍",detail:"南区 6 栋 512",reward:2,due:now+10*MIN,secret:"",pub:"u1",runner:"u3",status:"delivered",at:now-50*MIN},
+      {id:2597,type:"express",title:"菜鸟驿站一个小件",from:"菜鸟驿站(东门)",to:"南区宿舍",detail:"",reward:3,due:now-3*3600e3,secret:"取件码 2-2-0915",pub:"u2",runner:"u1",status:"done",rating:5,at:now-4*3600e3}
+    ]
+  };
+}
+
+let S;
+try{S=JSON.parse(localStorage.getItem("shunlu-v1"))}catch(e){}
+if(!S||!S.users)S=seed();
+function save(){try{localStorage.setItem("shunlu-v1",JSON.stringify(S))}catch(e){}}
+
+let view="hall", fType="all", sortBy="along", ordTab="posted", modalId=null, stars=5;
+try{const h=location.hash.slice(1); if(["hall","post","orders","me","design"].includes(h))view=h}catch(e){}
+
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const me=()=>S.users[S.me];
+const fmtMoney=n=>"¥"+Number(n).toFixed(n%1?1:0);
+function level(c){return c>=90?"金牌跑腿":c>=75?"靠谱同学":c>=60?"普通":"受限"}
+function dueText(t){
+  const m=Math.round((t-Date.now())/MIN);
+  if(m<0)return "已截止";
+  if(m<60)return `还剩 ${m} 分钟`;
+  if(m<24*60)return `还剩 ${Math.floor(m/60)} 小时 ${m%60} 分`;
+  const d=new Date(t);return `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")} 前`;
+}
+function ago(t){const m=Math.round((Date.now()-t)/MIN);return m<60?`${Math.max(m,1)} 分钟前`:m<1440?`${Math.floor(m/60)} 小时前`:`${Math.floor(m/1440)} 天前`}
+function along(t){const r=ROUTES[S.route];return r.includes(t.from)||r.includes(t.to)||(t.from.includes(r[0].slice(0,2))&&t.to===r[1])}
+function toast(msg){const el=$("#toast");el.textContent=msg;el.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>el.hidden=true,2400)}
+function credit(uid,d,t){const u=S.users[uid];u.credit=Math.max(0,Math.min(100,u.credit+d));u.log.unshift({d,t,at:Date.now()})}
+
+function card(t){
+  const u=S.users[t.pub], ty=TYPES[t.type];
+  const hot=t.status==="open"&&t.due-Date.now()<30*MIN;
+  return `<button class="card" data-open="${t.id}">
+    <div class="top"><span class="type ${ty.c}">${ty.n}</span>
+      ${t.status==="open"&&along(t)?'<span class="along">● 顺路</span>':""}
+      ${t.status!=="open"?`<span class="status s-${t.status}">${STATUS[t.status]}</span>`:""}
+      <span class="reward"><small>¥</small>${t.reward}</span></div>
+    <h3>${esc(t.title)}</h3>
+    <div class="path">${esc(t.from)} <i>→</i> ${esc(t.to)}</div>
+    <div class="meta"><span class="avatar">${esc(u.name[0])}</span>${esc(u.name)} <span class="cred">信用 ${u.credit}</span>
+      <span class="due ${hot?"hot":""}">${dueText(t.due)}</span><span>#${t.id}</span></div>
+  </button>`;
+}
+
+function renderHall(){
+  let list=S.tasks.filter(t=>t.status==="open"&&(fType==="all"||t.type===fType));
+  if(sortBy==="along")list.sort((a,b)=>along(b)-along(a)||a.due-b.due);
+  if(sortBy==="reward")list.sort((a,b)=>b.reward-a.reward);
+  if(sortBy==="due")list.sort((a,b)=>a.due-b.due);
+  const n=S.tasks.filter(t=>t.status==="open"&&along(t)).length;
+  return `<section class="route">
+    <div><h1>今天顺路带点啥？</h1>
+      <p>设好你的常走路线，顺路的单子会排在最前面，多走两步就能帮到同学。</p>
+      <div class="pick"><label for="route">我的路线</label>
+        <select id="route">${ROUTES.map((r,i)=>`<option value="${i}" ${i==S.route?"selected":""}>${r[0]} → ${r[1]}</option>`).join("")}</select></div></div>
+    <div class="stat"><b>${n}</b><span>单顺路可接</span></div>
+  </section>
+  <div class="filters" role="group" aria-label="任务类型">
+    ${[["all","全部"],...Object.entries(TYPES).map(([k,v])=>[k,v.n])].map(([k,n])=>`<button class="chip" data-type="${k}" aria-pressed="${fType===k}">${n}</button>`).join("")}
+    <label class="sort" for="sort">排序<select id="sort">
+      <option value="along" ${sortBy==="along"?"selected":""}>顺路优先</option>
+      <option value="reward" ${sortBy==="reward"?"selected":""}>赏金最高</option>
+      <option value="due" ${sortBy==="due"?"selected":""}>最快截止</option></select></label>
+  </div>
+  ${list.length?`<div class="grid">${list.map(card).join("")}</div>`:`<div class="empty">这个分类暂时没有待接的单。去「发布任务」发一个，或者换个分类看看。</div>`}`;
+}
+
+function renderPost(){
+  const opts=PLACES.map(p=>`<option>${p}</option>`).join("");
+  return `<div style="display:grid;gap:6px;margin-bottom:16px"><span class="eyebrow">发布任务</span><h2>说清楚要什么，越具体越快被接</h2></div>
+  <form class="form" id="postForm">
+    <div class="types">${Object.entries(TYPES).map(([k,v],i)=>`<label><input type="radio" name="type" value="${k}" ${i==0?"checked":""}>${v.n}</label>`).join("")}</div>
+    <label class="f" for="p-title">任务标题<input id="p-title" required maxlength="40" placeholder="例：菜鸟驿站 1 个小件，送到南区 6 栋"></label>
+    <div class="row">
+      <label class="f" for="p-from">取 / 买 / 占 地点<select id="p-from">${opts}</select></label>
+      <label class="f" for="p-to">送达地点<select id="p-to">${opts}</select></label>
+    </div>
+    <div class="row">
+      <label class="f" for="p-reward">赏金（元）<input id="p-reward" type="number" min="1" max="50" step="0.5" value="3" required></label>
+      <label class="f" for="p-due">多久内完成<select id="p-due"><option value="30">30 分钟</option><option value="60" selected>1 小时</option><option value="120">2 小时</option><option value="360">今天内</option><option value="1440">明天</option></select></label>
+    </div>
+    <label class="f" for="p-detail">补充说明<textarea id="p-detail" placeholder="楼层、门牌、物品大小、特殊要求"></textarea></label>
+    <label class="f" for="p-secret">隐私信息（可选）<input id="p-secret" placeholder="取件码 / 手机尾号，仅接单人可见">
+      <span class="hint">取件码等敏感信息在大厅里不展示，只有接单的同学能看到。</span></label>
+    <div class="escrow">🔒 <span>发布后赏金 <b id="escrowAmt">¥3</b> 由平台托管，你确认收货后才会转给跑腿同学。当前余额 <b class="mono">${fmtMoney(me().wallet)}</b></span></div>
+    <div class="actions"><button class="btn" type="submit">发布任务</button></div>
+  </form>`;
+}
+
+function renderOrders(){
+  const list=S.tasks.filter(t=>ordTab==="posted"?t.pub===S.me:t.runner===S.me).sort((a,b)=>b.at-a.at);
+  return `<span class="eyebrow">我的订单</span>
+  <div><div class="seg" role="group"><button data-ord="posted" aria-pressed="${ordTab==="posted"}">我发布的</button><button data-ord="run" aria-pressed="${ordTab==="run"}">我跑的</button></div></div>
+  ${list.length?`<div class="grid">${list.map(card).join("")}</div>`:`<div class="empty">${ordTab==="posted"?"你还没发布过任务。":"你还没接过单，去任务大厅看看顺路的单吧。"}</div>`}`;
+}
+
+function gauge(c){
+  const a=Math.PI*(1-c/100), x=80+66*Math.cos(a), y=86-66*Math.sin(a);
+  return `<svg viewBox="0 0 160 96" aria-hidden="true"><path d="M14 86 A66 66 0 0 1 146 86" fill="none" stroke="var(--surface-2)" stroke-width="12" stroke-linecap="round"/>
+  <path d="M14 86 A66 66 0 0 1 ${x.toFixed(1)} ${y.toFixed(1)}" fill="none" stroke="var(--brand)" stroke-width="12" stroke-linecap="round"/></svg>`;
+}
+function renderMe(){
+  const u=me();
+  return `<div class="me">
+    <section class="panel">
+      <div style="display:flex;gap:10px;align-items:center"><span class="avatar" style="width:40px;height:40px;font-size:16px">${esc(u.name[0])}</span>
+        <div><b>${esc(u.name)}</b><div class="hint">${esc(u.dept)} · ${esc(u.dorm)}</div></div></div>
+      <div class="gauge">${gauge(u.credit)}<div class="n">${u.credit}</div><div class="lvl">${level(u.credit)}</div></div>
+      <dl class="kv"><dt>完成跑腿</dt><dd>${u.done} 单</dd><dt>发布任务</dt><dd>${u.posted} 单</dd><dt>平均评分</dt><dd>${u.rate.toFixed(1)} ★</dd><dt>钱包余额</dt><dd>${fmtMoney(u.wallet)}</dd></dl>
+      <div class="badges"><span class="badge ${u.verified?"on":""}">${u.verified?"✓ 学生证已认证":"未完成学生认证"}</span><span class="badge ${u.done>=30?"on":""}">30 单达人</span><span class="badge ${u.rate>=4.8?"on":""}">好评 ≥ 4.8</span></div>
+    </section>
+    <section class="panel">
+      <span class="eyebrow">信用变动</span>
+      ${u.log.length?`<ul class="log">${u.log.slice(0,12).map(l=>`<li><span class="d ${l.d>0?"up":"dn"}">${l.d>0?"+":""}${l.d}</span><span>${esc(l.t)}</span><time>${ago(l.at)}</time></li>`).join("")}</ul>`:`<p class="hint">还没有信用变动记录。完成第一单就会出现在这里。</p>`}
+      <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--line)">
+        <span class="eyebrow">信用分怎么算</span>
+        <p class="hint" style="margin:6px 0 0">初始 80 分，满分 100。完成订单 +2，五星好评 +1，按时确认收货 +1；超时送达 −5，接单后取消 −3，投诉核实 −10。低于 60 分暂停接单，90 分以上优先展示。</p>
+      </div>
+      <div class="actions" style="margin-top:14px"><button class="btn ghost" id="reset">重置演示数据</button></div>
+    </section>
+  </div>`;
+}
+
+function renderDesign(){
+  return `<article class="doc">
+  <div><span class="eyebrow">产品设计说明</span><h2 style="font-size:24px;margin-top:4px">顺路：让「顺手帮个忙」在校园里变得可信</h2>
+    <p>定位是校内学生之间的互助，而不是外卖式的专职配送。核心洞察是：大多数跑腿需求的路线，正好有别的同学每天在走。平台要做的是把需求和「顺路的人」匹配起来，并用信用体系解决陌生同学之间的信任问题。</p></div>
+
+  <section><h3>用户痛点</h3>
+    <div class="pains">
+      <div><b>找人难</b><span>需求散落在各个群里，消息很快被刷掉，没人接也不知道。</span></div>
+      <div><b>不放心</b><span>取件码、宿舍号发到群里，谁都能看见；对方是谁也不清楚。</span></div>
+      <div><b>钱说不清</b><span>先付怕跑路，后付怕赖账，代买还要垫钱。</span></div>
+      <div><b>跑腿不划算</b><span>专门跑一趟只为 3 块钱不值，顺路才愿意帮。</span></div>
+    </div></section>
+
+  <section><h3>功能结构</h3>
+    <div class="tbl"><table><thead><tr><th>模块</th><th>功能</th><th>解决的问题</th></tr></thead><tbody>
+      <tr><td>任务大厅</td><td>按类型筛选；按顺路、赏金、截止时间排序；标出顺路单</td><td>找人难、跑腿不划算</td></tr>
+      <tr><td>发布任务</td><td>四类模板（快递 / 代买 / 占座 / 其他），取送地点从校内地点选，隐私信息单独填写</td><td>描述不清、隐私泄露</td></tr>
+      <tr><td>订单流转</td><td>接单 → 送达拍照 → 发布者确认 → 互评，全程状态可见</td><td>过程不透明</td></tr>
+      <tr><td>赏金托管</td><td>发布时冻结赏金，确认收货后转给跑腿方，超时自动退回</td><td>钱说不清</td></tr>
+      <tr><td>信用档案</td><td>学生证认证、信用分、等级、每一笔加减分记录</td><td>不放心</td></tr>
+    </tbody></table></div></section>
+
+  <section><h3>订单状态流</h3>
+    <div class="flow">
+      <div><span class="k">1</span><b>待接单</b><span>赏金冻结</span></div>
+      <div><span class="k">2</span><b>跑腿中</b><span>接单人可见取件码</span></div>
+      <div><span class="k">3</span><b>待确认</b><span>送达拍照留证</span></div>
+      <div><span class="k">4</span><b>已完成</b><span>赏金到账，双方互评</span></div>
+    </div>
+    <p>发布者在接单前可随时取消，赏金原路退回。跑腿方接单后取消扣 3 分；超过截止时间 2 小时未确认，系统自动确认收货。</p></section>
+
+  <section><h3>信用规则</h3>
+    <div class="tbl"><table><thead><tr><th>行为</th><th>分值</th><th>说明</th></tr></thead><tbody>
+      <tr><td>完成一单跑腿</td><td class="mono up">+2</td><td>每日上限 +10，防刷单</td></tr>
+      <tr><td>获得五星好评</td><td class="mono up">+1</td><td>差评不直接扣分，进入人工复核</td></tr>
+      <tr><td>按时确认收货</td><td class="mono up">+1</td><td>鼓励发布者及时闭环</td></tr>
+      <tr><td>接单后取消</td><td class="mono dn">−3</td><td>发布者原因可申诉免扣</td></tr>
+      <tr><td>超时送达</td><td class="mono dn">−5</td><td></td></tr>
+      <tr><td>投诉核实</td><td class="mono dn">−10</td><td>丢件、私拆等，同时冻结账号</td></tr>
+    </tbody></table></div>
+    <p>等级：90+ 金牌跑腿（大厅优先展示）· 75–89 靠谱同学 · 60–74 普通 · 低于 60 暂停接单。</p></section>
+
+  <section><h3>后续迭代</h3>
+    <p>接入学校统一身份认证替代学生证上传；楼栋「驿站合单」，一人一次帮整层取件；跑腿方位置实时共享（仅订单进行中）；与校园卡打通做小额结算；宿管、社团可作为官方认证的信用担保方。</p></section>
+
+  <section><h3>体验这个雏形</h3>
+    <p>右上角「当前身份」可以在四位同学之间切换，用来模拟发布方和跑腿方。比如用林晓接一单，再切到发布者确认收货并评分，信用分和钱包会跟着变化。数据保存在你自己的浏览器里，「信用档案」页底部可以重置。</p></section>
+  </article>`;
+}
+
+function render(){
+  document.querySelectorAll(".tab").forEach(b=>b.setAttribute("aria-current",b.dataset.view===view));
+  $("#who").innerHTML=Object.entries(S.users).map(([k,u])=>`<option value="${k}" ${k===S.me?"selected":""}>${u.name}（信用 ${u.credit}）</option>`).join("");
+  $("#app").innerHTML={hall:renderHall,post:renderPost,orders:renderOrders,me:renderMe,design:renderDesign}[view]();
+  renderModal();
+}
+
+function renderModal(){
+  const t=S.tasks.find(x=>x.id===modalId);
+  if(!t){$("#modal").innerHTML="";return}
+  const u=S.users[t.pub], r=t.runner&&S.users[t.runner], ty=TYPES[t.type];
+  const isPub=t.pub===S.me, isRun=t.runner===S.me;
+  const canSee=(isPub||isRun)&&t.secret;
+  const idx={open:0,taken:1,delivered:2,done:3,cancelled:-1}[t.status];
+  let acts="", note="";
+  if(t.status==="open"&&isPub){acts=`<button class="btn warn" data-act="cancel">取消任务，退回赏金</button>`}
+  else if(t.status==="open"){
+    const ok=me().credit>=60;
+    acts=`<button class="btn" data-act="take" ${ok?"":"disabled"}>接单，赚 ${fmtMoney(t.reward)}</button>`;
+    note=ok?"接单后可查看取件码。接单后取消会扣 3 分信用。":"你的信用分低于 60，暂时不能接单。";
+  }
+  else if(t.status==="taken"&&isRun){acts=`<button class="btn" data-act="deliver">已送达，拍照上传</button>`;note="送达照片会作为凭证，发布者确认后赏金到账。"}
+  else if(t.status==="delivered"&&isPub){
+    acts=`<div style="display:grid;gap:8px;width:100%"><span class="hint">给 ${esc(r.name)} 打个分</span>
+      <div class="stars" role="group" aria-label="评分">${[1,2,3,4,5].map(i=>`<button data-star="${i}" class="${i<=stars?"on":""}" aria-label="${i} 星">★</button>`).join("")}</div>
+      <button class="btn" data-act="confirm">确认收货，支付 ${fmtMoney(t.reward)}</button></div>`;
+  }
+  else if(t.status==="taken"&&isPub){note=`${r.name} 正在跑腿中，送达后你会收到确认提醒。`}
+  else if(t.status==="delivered"&&isRun){note="已送达，等待发布者确认。超时 2 小时未确认将自动完成。"}
+  $("#modal").innerHTML=`<div class="scrim" data-close="1"><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="mt">
+    <header><span class="type ${ty.c}">${ty.n}</span><span class="status s-${t.status}">${STATUS[t.status]}</span><span class="mono hint">#${t.id}</span>
+      <button class="x" data-close="1" aria-label="关闭">✕</button></header>
+    <div style="display:flex;gap:12px;align-items:flex-start"><h2 id="mt" style="flex:1">${esc(t.title)}</h2><span class="reward" style="margin:0"><small>¥</small>${t.reward}</span></div>
+    ${idx>=0?`<div class="steps">${["待接单","跑腿中","待确认","已完成"].map((s,i)=>`<div class="${i<=idx?"on":""}">${s}</div>`).join("")}</div>`:""}
+    <div class="path" style="font-size:14px">${esc(t.from)} <i>→</i> ${esc(t.to)} · <span class="${t.due-Date.now()<30*MIN&&t.status==="open"?"dn":""}">${dueText(t.due)}</span></div>
+    ${t.detail?`<p style="margin:0">${esc(t.detail)}</p>`:""}
+    ${t.secret?`<div class="secret ${canSee?"":"locked"}">${canSee?`🔓 <span class="code">${esc(t.secret)}</span>`:"🔒 取件码等隐私信息仅接单人可见"}</div>`:""}
+    <div class="meta" style="font-size:13px"><span class="avatar">${esc(u.name[0])}</span>发布者 ${esc(u.name)} · ${esc(u.dept)} <span class="cred">信用 ${u.credit}</span>${u.verified?'<span class="badge on">✓ 已认证</span>':""}</div>
+    ${r?`<div class="meta" style="font-size:13px"><span class="avatar">${esc(r.name[0])}</span>跑腿 ${esc(r.name)} <span class="cred">信用 ${r.credit}</span>${t.rating?` · 获评 ${"★".repeat(t.rating)}`:""}</div>`:""}
+    ${acts?`<div class="actions">${acts}</div>`:""}
+    ${note?`<div class="note">${note}</div>`:""}
+  </div></div>`;
+}
+
+function act(a){
+  const t=S.tasks.find(x=>x.id===modalId);if(!t)return;
+  if(a==="take"){t.status="taken";t.runner=S.me;toast("接单成功，取件码已解锁")}
+  if(a==="cancel"){t.status="cancelled";me().wallet+=t.reward;toast(`已取消，${fmtMoney(t.reward)} 已退回钱包`)}
+  if(a==="deliver"){t.status="delivered";toast("已提交送达照片，等待对方确认")}
+  if(a==="confirm"){
+    t.status="done";t.rating=stars;const r=S.users[t.runner];
+    r.wallet+=t.reward;r.done++;credit(t.runner,2,`完成订单 #${t.id} ${TYPES[t.type].n}`);
+    if(stars===5)credit(t.runner,1,"收到五星好评");
+    credit(S.me,1,`按时确认收货 #${t.id}`);
+    toast(`已支付 ${fmtMoney(t.reward)} 给 ${r.name}`);
+  }
+  save();render();
+}
+
+document.addEventListener("click",e=>{
+  const g=k=>e.target.closest(`[${k}]`);
+  let el;
+  if(el=g("data-view")){view=el.dataset.view;modalId=null;render();window.scrollTo(0,0);return}
+  if(el=g("data-type")){fType=el.dataset.type;render();return}
+  if(el=g("data-ord")){ordTab=el.dataset.ord;render();return}
+  if(el=g("data-star")){stars=+el.dataset.star;renderModal();return}
+  if(el=g("data-act")){act(el.dataset.act);return}
+  if(el=g("data-open")){modalId=+el.dataset.open;stars=5;renderModal();return}
+  if(e.target.dataset.close){modalId=null;renderModal();return}
+  if(e.target.id==="reset"){S=seed();save();render();toast("演示数据已重置")}
+});
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&modalId){modalId=null;renderModal()}});
+document.addEventListener("change",e=>{
+  if(e.target.id==="who"){S.me=e.target.value;save();render();toast(`已切换为 ${me().name}`)}
+  if(e.target.id==="route"){S.route=+e.target.value;save();render()}
+  if(e.target.id==="sort"){sortBy=e.target.value;render()}
+});
+document.addEventListener("input",e=>{if(e.target.id==="p-reward"){const a=$("#escrowAmt");if(a)a.textContent=fmtMoney(+e.target.value||0)}});
+document.addEventListener("submit",e=>{
+  if(e.target.id!=="postForm")return;
+  e.preventDefault();
+  const reward=+$("#p-reward").value, u=me();
+  if(reward>u.wallet){toast(`余额 ${fmtMoney(u.wallet)} 不够托管这笔赏金，调低赏金后再发布`);return}
+  const t={id:S.nextId++,type:document.querySelector('input[name="type"]:checked').value,title:$("#p-title").value.trim(),
+    from:$("#p-from").value,to:$("#p-to").value,detail:$("#p-detail").value.trim(),reward,
+    due:Date.now()+(+$("#p-due").value)*MIN,secret:$("#p-secret").value.trim(),pub:S.me,runner:null,status:"open",at:Date.now()};
+  if(!t.title){toast("写个标题，让同学一眼看懂要做什么");return}
+  u.wallet-=reward;u.posted++;S.tasks.unshift(t);save();
+  view="hall";fType="all";render();toast(`已发布 #${t.id}，赏金 ${fmtMoney(reward)} 托管中`);
+});
+setInterval(()=>{if(view==="hall"&&!modalId)render()},60000);
+render();
+</script>
+</body>
+</html>
